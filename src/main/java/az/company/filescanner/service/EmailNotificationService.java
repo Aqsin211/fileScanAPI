@@ -9,11 +9,12 @@ import org.springframework.stereotype.Service;
 public class EmailNotificationService {
 
     private final JavaMailSender mailSender;
-    @Value("${spring.mail.username:}")
-    private  String senderEmail;
-    @Value("${admin-email:}")
-    private String adminEmail;
 
+    @Value("${spring.mail.username:}")
+    private String senderEmail;
+
+    @Value("${admin-email:}")
+    private String adminEmails; // comma-separated list of emails
 
     public EmailNotificationService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
@@ -22,17 +23,21 @@ public class EmailNotificationService {
     public void sendVirusAlert(String fileName, String virusName) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(senderEmail);
-        message.setTo(adminEmail);
+
+        // Split adminEmails by comma, trim whitespace, and send to all
+        String[] recipients = adminEmails.split("\\s*,\\s*");
+        message.setTo(recipients);
+
         message.setSubject("Virus Detected in File Upload");
         message.setText(String.format("""
-            Alert: A virus has been detected in an uploaded file.
-
-            File Name: %s
-            Virus Detected: %s
-            Timestamp: %s
-
-            Immediate action is recommended.
-        """, fileName, virusName, java.time.LocalDateTime.now()));
+                    Alert: A virus has been detected in an uploaded file.
+                
+                    File Name: %s
+                    Virus Detected: %s
+                    Timestamp: %s
+                
+                    Immediate action is recommended.
+                """, fileName, virusName, java.time.LocalDateTime.now()));
 
         mailSender.send(message);
     }
