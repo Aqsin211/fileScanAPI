@@ -108,7 +108,7 @@ admin-email: admin1@example.com,admin2@example.com
 | Method | Path                        | Description                    |
 | ------ | --------------------------- | ------------------------------ |
 | POST   | `/filescan/upload`          | Upload file and start scan     |
-| GET    | `/filescan/status{scanId}`  | Retrieve scan result by scanId |
+| GET    | `/filescan/status/{scanId}` | Retrieve scan result by scanId |
 | DELETE | `/filescan/delete/{scanId}` | Delete scanned file and result |
 
 ---
