@@ -85,7 +85,7 @@ admin-email: admin1@example.com,admin2@example.com
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/FileScanAPI.git
+   git clone https://github.com/Aqsin211/FileScanAPI.git
    cd FileScanAPI
    ```
 
