@@ -1,150 +1,127 @@
-# FileScanAPI
+# FileScan — Virus Scanning Service Integration with Spring Boot and ClamAV
 
 ## Overview
 
-**FileScanAPI** is a Spring Boot microservice designed to securely scan uploaded files for viruses using ClamAV and manage file storage with MinIO. It supports asynchronous scanning, stores scan results in a PostgreSQL database, and sends alert notifications via email if infected files are detected.
+**FileScan** is a Spring Boot backend service that securely accepts file uploads and scans them for viruses and malware using the ClamAV antivirus engine via its TCP socket interface. It performs asynchronous scanning to ensure efficient throughput, quarantines infected files, and sends email alerts to administrators upon detection of threats.
+
+The service logs all scan results and actions, providing an audit trail for uploaded files and their virus scan status.
 
 ---
 
 ## Features
 
-- File upload API with asynchronous virus scanning  
-- ClamAV integration for virus detection  
-- File storage in MinIO object storage, with buckets for temp, clean, and quarantine files  
-- Scan results stored in PostgreSQL database  
-- Email alerts to administrators on virus detection  
-- Simple CRUD for managing scan results (get, create/upload, delete)  
-- Configurable via `application.yaml` and environment variables  
-- Support for multiple admin emails for alert notifications
+- **Multipart file upload via REST API**
+- **Integration with ClamAV antivirus daemon** for virus scanning over TCP socket
+- **Asynchronous scanning** using a dedicated thread pool to improve performance
+- **Infection handling:** quarantines infected files and blocks unsafe content
+- **Scan result persistence** in PostgreSQL database for auditing
+- **MinIO object storage** buckets for temp, clean, and quarantine file management
+- **Email alerts** to admins when infected files are detected
+- **Graceful error handling** for failures in ClamAV or storage services
 
 ---
 
-## Technology Stack
+## Architecture & Components
 
-- Java 21  
-- Spring Boot 3.5.4  
-- PostgreSQL  
-- MinIO (S3-compatible object storage)  
-- ClamAV (virus scanner)  
-- JavaMail (email notifications)  
-- Lombok  
-- Gradle build system
-
----
-
-## Prerequisites
-
-- Java JDK 21 or higher  
-- PostgreSQL database  
-- MinIO server running locally or remotely  
-- ClamAV daemon running and accessible  
-- SMTP email account for sending alerts (e.g., Gmail SMTP)
-
----
-
-## Configuration
-
-Configure your application in `src/main/resources/application.yaml`. For security, **do not commit secrets** directly—use environment variables or external config files that are `.gitignore`d.
-
-Example config snippet:
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/scan-result-database
-    username: your_db_user
-    password: your_db_password
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: your_email@example.com
-    password: your_email_password
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls.enable: true
-          ssl.trust: smtp.gmail.com
-
-minio:
-  url: http://localhost:9000
-  access-key: your_minio_access_key
-  secret-key: your_minio_secret_key
-  bucket:
-    temp: temp
-    clean: scanned-clean-files
-    quarantine: scanned-quarantine-files
-
-admin-email: admin1@example.com,admin2@example.com
-````
-
----
-
-## Running the Application
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/Aqsin211/FileScanAPI.git
-   cd FileScanAPI
-   ```
-
-2. Set up your environment variables or `application.yaml` with correct database, MinIO, and email credentials.
-
-3. Start ClamAV daemon (`clamd`).
-
-4. Start MinIO server.
-
-5. Build and run the Spring Boot app:
-
-   ```bash
-   ./gradlew bootRun
-   ```
+- **Spring Boot** application exposing REST endpoints to upload files, check scan status, and delete scans
+- **ClamAVClientService:** communicates with ClamAV daemon via TCP socket to scan files
+- **FileScanService:** orchestrates async scanning, file uploads/downloads to MinIO buckets (temp, clean, quarantine), DB updates, and email alerts
+- **MinIOStorageService:** handles file operations on MinIO object storage server
+- **EmailNotificationService:** sends virus detection alerts to administrators via SMTP
+- **PostgreSQL** used for scan result persistence via Spring Data JPA
+- **AsyncConfig:** configures a thread pool executor for asynchronous scan processing
 
 ---
 
 ## API Endpoints
 
-| Method | Path                        | Description                    |
-| ------ | --------------------------- | ------------------------------ |
-| POST   | `/filescan/upload`          | Upload file and start scan     |
-| GET    | `/filescan/status/{scanId}` | Retrieve scan result by scanId |
-| DELETE | `/filescan/delete/{scanId}` | Delete scanned file and result |
+| Method | Endpoint               | Description                            | Response                    |
+|--------|------------------------|------------------------------------|-----------------------------|
+| POST   | `/filescan/upload`     | Uploads a file for virus scanning   | Accepted with generated `scanId` |
+| GET    | `/filescan/status/{scanId}` | Returns the scan result for a given scanId | Scan status and details     |
+| DELETE | `/filescan/delete/{scanId}` | Deletes the file and scan record   | Confirmation message         |
 
 ---
 
-## Usage Example (curl)
+## Setup & Configuration
 
-Upload a file for scanning:
+### Prerequisites
+
+- Java 21
+- PostgreSQL database
+- ClamAV daemon running locally or accessible on TCP port 3310
+- MinIO object storage server with buckets for temp, clean, and quarantine files
+- SMTP mail server credentials for sending alerts (e.g., Gmail SMTP)
+
+### Environment Variables
+
+The application reads configuration values from environment variables or `application.yml` placeholders:
+
+| Variable                 | Description                      |
+|--------------------------|---------------------------------|
+| `DB_USERNAME`            | PostgreSQL database username    |
+| `DB_PASSWORD`            | PostgreSQL database password    |
+| `EMAIL_USERNAME`         | SMTP email username             |
+| `EMAIL_PASSWORD`         | SMTP email password             |
+| `MINIO_URL`              | MinIO server URL                |
+| `MINIO_ACCESS_KEY`       | MinIO access key                |
+| `MINIO_SECRET_KEY`       | MinIO secret key                |
+| `MINIO_BUCKET_TEMP`      | MinIO bucket for temporary files|
+| `MINIO_BUCKET_CLEAN`     | MinIO bucket for clean files   |
+| `MINIO_BUCKET_QUARANTINE`| MinIO bucket for quarantined files |
+| `ADMIN_EMAIL`            | Comma-separated admin emails for alerts |
+
+### Running the Application
+
+1. Clone the repository and navigate to the project directory.
+2. Set the required environment variables.
+3. Start the ClamAV daemon (`clamd`) on port 3310.
+4. Ensure PostgreSQL and MinIO are running and accessible.
+5. Build and run the application using Gradle:
 
 ```bash
-curl -X POST http://localhost:8080/filescan/upload -H "Accept: application/json" -F "file=@/path/to/file.txt"
-```
-
-Check scan result by `scanId`:
-
-```bash
-curl http://localhost:8080/filescan/status{scanId}
-```
-
-Delete scan result and file by `scanId`:
-
-```bash
-curl -X DELETE http://localhost:8080/filescan/delete/{scanId}
+./gradlew bootRun
 ```
 
 ---
 
-## Important Notes
+## How It Works
 
-* The service stores files temporarily in the MinIO `temp` bucket until scanned. Clean files move to the `clean` bucket; infected files move to the `quarantine` bucket.
-* Email notifications are sent asynchronously to all configured admin emails on virus detection.
-* Scan results are stored with UUID scan IDs. Users interact mainly through these IDs.
-* Secrets **must not** be committed to version control. Use environment variables or secure vault solutions in production.
-* Make sure ClamAV and MinIO services are accessible and configured properly before running the app.
+1. Client uploads a file via `/filescan/upload`.
+2. The server generates a unique `scanId` and stores an initial pending record.
+3. The file is uploaded to the MinIO **temp bucket**.
+4. The scan runs asynchronously:
+   - The file is downloaded from the temp bucket.
+   - It is scanned by ClamAV via TCP socket.
+   - If clean, file is moved to the **clean bucket**.
+   - If infected, file is moved to the **quarantine bucket**, and an email alert is sent to admins.
+5. Scan results are updated in the database with status, virus name (if any), and timestamp.
+6. Clients can poll `/filescan/status/{scanId}` for scan results.
+7. Files and scan records can be deleted via `/filescan/delete/{scanId}`.
 
 ---
 
-## Contact
+## Dependencies
 
-For issues or feature requests, please open an issue on the GitHub repository.
+- Spring Boot 3.5.4
+- Spring Data JPA
+- PostgreSQL Driver
+- MinIO Java Client 8.5.17
+- Spring Boot Starter Mail
+- Lombok
+- ClamAV antivirus (external daemon)
+
+---
+
+## Error Handling
+
+- If a scan result is not found, the API returns HTTP 404 with a descriptive error message.
+- Unexpected exceptions return HTTP 500 with generic error info logged server-side.
+- Failures in file upload, scanning, or storage update the scan result status as `ERROR`.
+
+---
+
+## Bonus Features
+
+- Quarantined files are stored separately to prevent accidental use.
+- Email notifications alert administrators immediately on virus detection.
