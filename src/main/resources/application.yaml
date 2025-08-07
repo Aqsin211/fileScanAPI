@@ -2,9 +2,9 @@ spring:
   application:
     name: fileScanApi
   datasource:
-    url: jdbc:postgresql://localhost:5432/sos-database
-    username: postgres
-    password: Postgres1234567890
+    url: jdbc:postgresql://localhost:5432/scan-result-database
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -22,3 +22,14 @@ spring:
           auth: true
           starttls.enable: true
           ssl.trust: smtp.gmail.com
+
+minio:
+  url: ${MINIO_URL}
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
+  bucket:
+    temp: ${MINIO_BUCKET_TEMP}
+    clean: ${MINIO_BUCKET_CLEAN}
+    quarantine: ${MINIO_BUCKET_QUARANTINE}
+
+admin-email: ${ADMIN_EMAIL}

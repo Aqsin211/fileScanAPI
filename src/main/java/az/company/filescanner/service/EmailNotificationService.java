@@ -1,22 +1,22 @@
 package az.company.filescanner.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-import io.github.cdimascio.dotenv.Dotenv;
 
 @Service
 public class EmailNotificationService {
 
     private final JavaMailSender mailSender;
-    private final String senderEmail;
-    private final String adminEmail;
+    @Value("${spring.mail.username:}")
+    private  String senderEmail;
+    @Value("${admin-email:}")
+    private String adminEmail;
+
 
     public EmailNotificationService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
-        Dotenv dotenv = Dotenv.load();
-        this.senderEmail = dotenv.get("EMAIL_USERNAME");
-        this.adminEmail = dotenv.get("EMAIL_ADMIN");
     }
 
     public void sendVirusAlert(String fileName, String virusName) {

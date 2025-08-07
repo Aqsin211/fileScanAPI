@@ -22,8 +22,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    implementation 'io.minio:minio:8.5.17' //add into gradle.properties
-    implementation "io.github.cdimascio:dotenv-java:$dotEnvVersion"
+    implementation "io.minio:minio:$minioVersion"
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     runtimeOnly 'org.postgresql:postgresql'

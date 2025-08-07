@@ -1,9 +1,11 @@
-package az.company.filescanner.entity;
+package az.company.filescanner.dao.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,13 +22,16 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Table(name = "scan_results")
 @Entity
 public class ScanResult {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     Long id;
+    @Column(unique = true, nullable = false)
+    String scanId;
     String filename;
-    String status; // CLEAN, INFECTED, ERROR
-    String virusName; // If there will be available virus name
+    String status;
+    String virusName;
     LocalDateTime scannedAt;
 }
